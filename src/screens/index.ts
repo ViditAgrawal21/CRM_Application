@@ -16,10 +16,17 @@ export {BacklogScreen} from './BacklogScreen';
 // Meetings & Visits
 export {MeetingScheduleScreen} from './MeetingScheduleScreen';
 export {VisitScheduleScreen} from './VisitScheduleScreen';
+export {MeetingDetailScreen} from './MeetingDetailScreen';
+export {VisitDetailScreen} from './VisitDetailScreen';
 
 // Templates & Reports
 export {TemplatesScreen} from './TemplatesScreen';
 export {ReportsScreen} from './ReportsScreen';
+export {DailyReportScreen} from './DailyReportScreen';
+export {MonthlyReportScreen} from './MonthlyReportScreen';
+
+// Bulk Upload
+export {BulkUploadScreen} from './BulkUploadScreen';
 
 // Properties & Targets
 export {PropertiesScreen} from './PropertiesScreen';

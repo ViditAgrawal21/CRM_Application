@@ -99,3 +99,63 @@ export const shareText = async (text: string) => {
     console.error('Failed to share:', error);
   }
 };
+
+/**
+ * Extract scheduled time from remark text
+ * Supports formats like:
+ * - "Meeting 5th Feb at 2 PM"
+ * - "Visit tomorrow at 3 PM"
+ * - "Meeting 5/2/2025 at 14:00"
+ * - "Visit today at 5 PM"
+ */
+export const extractTimeFromRemark = (remark: string): string | null => {
+  if (!remark) return null;
+  
+  // Match patterns like "5th Feb at 2 PM", "5/2/2025 at 14:00", "tomorrow at 3 PM"
+  const patterns = [
+    // "5th Feb at 2 PM" or "5th February at 2:30 PM"
+    /(\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+at\s+\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)/i,
+    // "5/2/2025 at 14:00" or "05-02-2025 at 2 PM"
+    /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\s+at\s+\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)/i,
+    // "tomorrow at 3 PM" or "today at 5 PM"
+    /((?:today|tomorrow)\s+at\s+\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)/i,
+    // Just date with optional time "5th Feb" or "5th Feb 2 PM"
+    /(\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s*(?:\d{4})?\s*(?:\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)?)/i,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = remark.match(pattern);
+    if (match) {
+      return match[1].trim();
+    }
+  }
+  
+  return null;
+};
+
+/**
+ * Format remark text for display with extracted time highlighted
+ */
+export const formatRemarkWithTime = (remark: string): {text: string; time: string | null} => {
+  const time = extractTimeFromRemark(remark);
+  return {text: remark, time};
+};
+
+/**
+ * Get suggested remark formats for user guidance
+ */
+export const getRemarkFormatSuggestions = (): string[] => {
+  return [
+    'Meeting 5th Feb at 2 PM',
+    'Visit tomorrow at 3 PM',
+    'Meeting 5/2/2025 at 14:00',
+    'Visit today at 5 PM',
+  ];
+};
+
+/**
+ * Check if user is owner/admin role
+ */
+export const isOwnerRole = (role: string): boolean => {
+  return ['admin', 'owner', 'manager'].includes(role.toLowerCase());
+};

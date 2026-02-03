@@ -17,13 +17,13 @@ interface CreateLogData {
 export const noteService = {
   getNotes: async (leadId: string): Promise<Note[]> => {
     const response = await apiClient.get<{success: boolean; data: Note[]}>(
-      `/api/notes?leadId=${leadId}`,
+      `/notes?leadId=${leadId}`,
     );
     return response.data.data;
   },
 
   createNote: async (data: CreateNoteData): Promise<Note> => {
-    const response = await apiClient.post<{success: boolean; data: Note}>('/api/notes', data);
+    const response = await apiClient.post<{success: boolean; data: Note}>('/notes', data);
     return response.data.data;
   },
 };
@@ -31,13 +31,13 @@ export const noteService = {
 export const logService = {
   getLogs: async (leadId: string): Promise<Log[]> => {
     const response = await apiClient.get<{success: boolean; data: Log[]}>(
-      `/api/logs?leadId=${leadId}`,
+      `/logs?leadId=${leadId}`,
     );
     return response.data.data;
   },
 
   createLog: async (data: CreateLogData): Promise<Log> => {
-    const response = await apiClient.post<{success: boolean; data: Log}>('/api/logs', data);
+    const response = await apiClient.post<{success: boolean; data: Log}>('/logs', data);
     return response.data.data;
   },
 };

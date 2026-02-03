@@ -80,10 +80,12 @@ export interface Meeting {
   status: MeetingStatus;
   outcome?: string;
   notes?: string;
+  remark?: string;
   created_by: string;
   created_at: string;
   updated_at: string;
   lead?: Lead;
+  user?: User;
 }
 
 export interface Visit {
@@ -94,10 +96,12 @@ export interface Visit {
   status: MeetingStatus;
   outcome?: string;
   notes?: string;
+  remark?: string;
   created_by: string;
   created_at: string;
   updated_at: string;
   lead?: Lead;
+  user?: User;
 }
 
 export interface Template {
@@ -178,10 +182,25 @@ export interface DailyReport {
   visits: number;
   leadsAdded: number;
   dealsClosed: number;
+  visitsToday?: number;
+  meetingsToday?: number;
+  totalCalls?: number;
+  prospects?: ProspectEntry[];
+  nextDayPlan?: string;
+  userName?: string;
+}
+
+export interface ProspectEntry {
+  leadId: string;
+  name: string;
+  phone: string;
+  status: string;
 }
 
 export interface MonthlyReport {
   month: string;
+  userName?: string;
+  userRole?: string;
   totalCalls: number;
   totalFollowups: number;
   totalMeetings: number;
@@ -190,4 +209,65 @@ export interface MonthlyReport {
   dealsClosed: number;
   conversionRate: number;
   targetAchievement: number;
+  targets?: {
+    meetings: number;
+    visits: number;
+    revenue: number;
+    bonus: number;
+  };
+  achieved?: {
+    meetings: number;
+    visits: number;
+    revenue: number;
+  };
+  performance?: {
+    meetingPercentage: number;
+    visitPercentage: number;
+    revenuePercentage: number;
+  };
+  bonusEarned?: number;
+}
+
+// Bulk Upload Types
+export interface BulkUploadRecord {
+  customerName: string;
+  customerNumber: string;
+  configuration: string;
+  location: string;
+  remark?: string;
+  assignTo?: string | null;
+}
+
+export interface BulkUploadRequest {
+  type: LeadType;
+  date: string;
+  records: BulkUploadRecord[];
+}
+
+export interface BulkUploadResponse {
+  uploadId: string;
+  total: number;
+  inserted: number;
+  duplicates: number;
+  errors: number;
+  errorDetails: Array<{
+    recordIndex: number;
+    phone: string;
+    reason: string;
+  }>;
+  duplicateDetails: Array<{
+    recordIndex: number;
+    phone: string;
+    name: string;
+  }>;
+}
+
+// Daily Report Save Types
+export interface SaveDailyReportData {
+  reportDate: string;
+  visitsToday: number;
+  meetingsToday: number;
+  totalCalls: number;
+  prospects: ProspectEntry[];
+  nextDayPlan: string;
 }

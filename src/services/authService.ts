@@ -5,7 +5,7 @@ import {saveToken, saveUser, clearStorage} from '../utils/storage';
 export const authService = {
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
     const response = await apiClient.post<{success: boolean; data: AuthResponse}>(
-      '/api/auth/login',
+      '/auth/login',
       credentials,
     );
     
@@ -23,7 +23,7 @@ export const authService = {
   },
 
   getCurrentUser: async (): Promise<User> => {
-    const response = await apiClient.get<{success: boolean; data: User}>('/api/auth/me');
+    const response = await apiClient.get<{success: boolean; data: User}>('/auth/me');
     return response.data.data;
   },
 };

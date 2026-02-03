@@ -9,14 +9,14 @@ interface CreateTemplateData {
 export const templateService = {
   getTemplates: async (): Promise<Template[]> => {
     const response = await apiClient.get<{success: boolean; data: Template[]}>(
-      '/api/templates',
+      '/templates',
     );
     return response.data.data;
   },
 
   createTemplate: async (data: CreateTemplateData): Promise<Template> => {
     const response = await apiClient.post<{success: boolean; data: Template}>(
-      '/api/templates',
+      '/templates',
       data,
     );
     return response.data.data;
@@ -27,13 +27,13 @@ export const templateService = {
     data: Partial<CreateTemplateData>,
   ): Promise<Template> => {
     const response = await apiClient.patch<{success: boolean; data: Template}>(
-      `/api/templates/${id}`,
+      `/templates/${id}`,
       data,
     );
     return response.data.data;
   },
 
   deleteTemplate: async (id: string): Promise<void> => {
-    await apiClient.delete(`/api/templates/${id}`);
+    await apiClient.delete(`/templates/${id}`);
   },
 };

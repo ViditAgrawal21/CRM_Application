@@ -14,16 +14,16 @@ interface CreateUserData {
 
 export const userService = {
   getTeam: async (): Promise<User[]> => {
-    const response = await apiClient.get<{success: boolean; data: User[]}>('/api/users/team');
+    const response = await apiClient.get<{success: boolean; data: User[]}>('/users/team');
     return response.data.data;
   },
 
   createUser: async (data: CreateUserData): Promise<User> => {
-    const response = await apiClient.post<{success: boolean; data: User}>('/api/users', data);
+    const response = await apiClient.post<{success: boolean; data: User}>('/users', data);
     return response.data.data;
   },
 
   deactivateUser: async (userId: string): Promise<void> => {
-    await apiClient.patch(`/api/users/deactivate/${userId}`);
+    await apiClient.patch(`/users/deactivate/${userId}`);
   },
 };

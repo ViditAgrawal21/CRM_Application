@@ -1,5 +1,5 @@
 import apiClient from '../api/client';
-import {Meeting, Visit} from '../types';
+import {Meeting, Visit, UserRole} from '../types';
 
 interface CreateMeetingData {
   leadId: string;
@@ -19,18 +19,36 @@ interface UpdateMeetingData {
   status?: 'scheduled' | 'completed' | 'cancelled';
   outcome?: string;
   notes?: string;
+  scheduledTime?: Date | string;
+}
+
+interface GetMeetingsParams {
+  status?: string;
+  userRole?: UserRole;
+  showAll?: boolean;
 }
 
 export const meetingService = {
-  getMeetings: async (status?: string): Promise<Meeting[]> => {
-    const url = status ? `/api/meetings?status=${status}` : '/api/meetings';
+  getMeetings: async (params?: GetMeetingsParams): Promise<Meeting[]> => {
+    const queryParams = new URLSearchParams();
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.userRole) queryParams.append('userRole', params.userRole);
+    if (params?.showAll) queryParams.append('showAll', 'true');
+    
+    const queryString = queryParams.toString();
+    const url = queryString ? `/meetings?${queryString}` : '/meetings';
     const response = await apiClient.get<{success: boolean; data: Meeting[]}>(url);
+    return response.data.data;
+  },
+
+  getMeeting: async (id: string): Promise<Meeting> => {
+    const response = await apiClient.get<{success: boolean; data: Meeting}>(`/meetings/${id}`);
     return response.data.data;
   },
 
   createMeeting: async (data: CreateMeetingData): Promise<Meeting> => {
     const response = await apiClient.post<{success: boolean; data: Meeting}>(
-      '/api/meetings',
+      '/meetings',
       data,
     );
     return response.data.data;
@@ -38,7 +56,7 @@ export const meetingService = {
 
   updateMeeting: async (id: string, data: UpdateMeetingData): Promise<Meeting> => {
     const response = await apiClient.patch<{success: boolean; data: Meeting}>(
-      `/api/meetings/${id}`,
+      `/meetings/${id}`,
       data,
     );
     return response.data.data;
@@ -46,28 +64,47 @@ export const meetingService = {
 
   completeMeeting: async (id: string): Promise<Meeting> => {
     const response = await apiClient.patch<{success: boolean; data: Meeting}>(
-      `/api/meetings/${id}`,
+      `/meetings/${id}`,
       {status: 'completed'},
+    );
+    return response.data.data;
+  },
+
+  rescheduleMeeting: async (id: string, scheduledTime: Date | string): Promise<Meeting> => {
+    const response = await apiClient.patch<{success: boolean; data: Meeting}>(
+      `/meetings/${id}`,
+      {scheduledTime, status: 'scheduled'},
     );
     return response.data.data;
   },
 };
 
 export const visitService = {
-  getVisits: async (status?: string): Promise<Visit[]> => {
-    const url = status ? `/api/visits?status=${status}` : '/api/visits';
+  getVisits: async (params?: GetMeetingsParams): Promise<Visit[]> => {
+    const queryParams = new URLSearchParams();
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.userRole) queryParams.append('userRole', params.userRole);
+    if (params?.showAll) queryParams.append('showAll', 'true');
+    
+    const queryString = queryParams.toString();
+    const url = queryString ? `/visits?${queryString}` : '/visits';
     const response = await apiClient.get<{success: boolean; data: Visit[]}>(url);
     return response.data.data;
   },
 
+  getVisit: async (id: string): Promise<Visit> => {
+    const response = await apiClient.get<{success: boolean; data: Visit}>(`/visits/${id}`);
+    return response.data.data;
+  },
+
   createVisit: async (data: CreateVisitData): Promise<Visit> => {
-    const response = await apiClient.post<{success: boolean; data: Visit}>('/api/visits', data);
+    const response = await apiClient.post<{success: boolean; data: Visit}>('/visits', data);
     return response.data.data;
   },
 
   updateVisit: async (id: string, data: UpdateMeetingData): Promise<Visit> => {
     const response = await apiClient.patch<{success: boolean; data: Visit}>(
-      `/api/visits/${id}`,
+      `/visits/${id}`,
       data,
     );
     return response.data.data;
@@ -75,8 +112,16 @@ export const visitService = {
 
   completeVisit: async (id: string): Promise<Visit> => {
     const response = await apiClient.patch<{success: boolean; data: Visit}>(
-      `/api/visits/${id}`,
+      `/visits/${id}`,
       {status: 'completed'},
+    );
+    return response.data.data;
+  },
+
+  rescheduleVisit: async (id: string, scheduledTime: Date | string): Promise<Visit> => {
+    const response = await apiClient.patch<{success: boolean; data: Visit}>(
+      `/visits/${id}`,
+      {scheduledTime, status: 'scheduled'},
     );
     return response.data.data;
   },

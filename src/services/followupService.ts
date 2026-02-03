@@ -16,21 +16,21 @@ interface UpdateFollowupData {
 export const followupService = {
   getTodayFollowups: async (): Promise<Followup[]> => {
     const response = await apiClient.get<{success: boolean; data: Followup[]}>(
-      '/api/followups/today',
+      '/followups/today',
     );
     return response.data.data;
   },
 
   getBacklog: async (): Promise<Followup[]> => {
     const response = await apiClient.get<{success: boolean; data: Followup[]}>(
-      '/api/followups/backlog',
+      '/followups/backlog',
     );
     return response.data.data;
   },
 
   createFollowup: async (data: CreateFollowupData): Promise<Followup> => {
     const response = await apiClient.post<{success: boolean; data: Followup}>(
-      '/api/followups',
+      '/followups',
       data,
     );
     return response.data.data;
@@ -38,7 +38,7 @@ export const followupService = {
 
   updateFollowup: async (id: string, data: UpdateFollowupData): Promise<Followup> => {
     const response = await apiClient.patch<{success: boolean; data: Followup}>(
-      `/api/followups/${id}`,
+      `/followups/${id}`,
       data,
     );
     return response.data.data;

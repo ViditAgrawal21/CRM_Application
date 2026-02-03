@@ -10,18 +10,23 @@ import {
   Alert,
 } from 'react-native';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useRoute} from '@react-navigation/native';
 import {useTheme} from '../hooks/useTheme';
 import {Button} from '../components';
 import {leadService} from '../services/leadService';
+import {LeadType} from '../types';
 
 export const AddLeadScreen: React.FC = () => {
   const {theme} = useTheme();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const queryClient = useQueryClient();
 
+  // Get type from navigation params (default to 'lead')
+  const initialType: LeadType = route.params?.type || 'lead';
+
   const [formData, setFormData] = useState({
-    type: 'lead' as 'lead' | 'data',
+    type: initialType,
     name: '',
     phone: '',
     configuration: '',
@@ -37,7 +42,7 @@ export const AddLeadScreen: React.FC = () => {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['leads']});
-      Alert.alert('Success', 'Lead created successfully');
+      Alert.alert('Success', `${formData.type === 'lead' ? 'Lead' : 'Data'} created successfully`);
       navigation.goBack();
     },
     onError: (error: any) => {
@@ -52,6 +57,13 @@ export const AddLeadScreen: React.FC = () => {
     }
     createMutation.mutate();
   };
+
+  // Update navigation title based on type
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      title: formData.type === 'lead' ? 'Add New Lead' : 'Add New Data',
+    });
+  }, [navigation, formData.type]);
 
   return (
     <KeyboardAvoidingView
@@ -170,7 +182,7 @@ export const AddLeadScreen: React.FC = () => {
           </View>
 
           <Button
-            title="Create Lead"
+            title={formData.type === 'lead' ? 'Create Lead' : 'Create Data'}
             onPress={handleSubmit}
             loading={createMutation.isPending}
             size="large"

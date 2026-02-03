@@ -10,7 +10,12 @@ import {BacklogScreen} from '../screens/BacklogScreen';
 import {TemplatesScreen} from '../screens/TemplatesScreen';
 import {MeetingScheduleScreen} from '../screens/MeetingScheduleScreen';
 import {VisitScheduleScreen} from '../screens/VisitScheduleScreen';
+import {MeetingDetailScreen} from '../screens/MeetingDetailScreen';
+import {VisitDetailScreen} from '../screens/VisitDetailScreen';
 import {ReportsScreen} from '../screens/ReportsScreen';
+import {DailyReportScreen} from '../screens/DailyReportScreen';
+import {MonthlyReportScreen} from '../screens/MonthlyReportScreen';
+import {BulkUploadScreen} from '../screens/BulkUploadScreen';
 import {BottomTabNavigator} from './BottomTabNavigator';
 import {LoadingSpinner} from '../components';
 import {useTheme} from '../hooks/useTheme';
@@ -86,9 +91,34 @@ export const RootNavigator: React.FC = () => {
               options={{title: 'Visit Schedule'}}
             />
             <Stack.Screen
+              name="MeetingDetail"
+              component={MeetingDetailScreen}
+              options={{title: 'Meeting Details'}}
+            />
+            <Stack.Screen
+              name="VisitDetail"
+              component={VisitDetailScreen}
+              options={{title: 'Visit Details'}}
+            />
+            <Stack.Screen
               name="Reports"
               component={ReportsScreen}
               options={{title: 'Reports'}}
+            />
+            <Stack.Screen
+              name="DailyReport"
+              component={DailyReportScreen}
+              options={{title: 'Daily Report'}}
+            />
+            <Stack.Screen
+              name="MonthlyReport"
+              component={MonthlyReportScreen}
+              options={{title: 'Monthly Report'}}
+            />
+            <Stack.Screen
+              name="BulkUpload"
+              component={BulkUploadScreen}
+              options={{title: 'Bulk Upload'}}
             />
           </>
         )}
