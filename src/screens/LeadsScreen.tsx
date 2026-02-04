@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -7,28 +7,81 @@ import {
   TouchableOpacity,
   RefreshControl,
   TextInput,
+  Alert,
 } from 'react-native';
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import Icon from '@react-native-vector-icons/ionicons';
 import {useTheme} from '../hooks/useTheme';
+import {useAuth} from '../hooks/useAuth';
 import {Card, Badge, Avatar, LoadingSpinner, EmptyState} from '../components';
 import {leadService} from '../services/leadService';
-import {Lead} from '../types';
+import {Lead, LeadType} from '../types';
 import {openPhoneDialer} from '../utils/helpers';
 import {useNavigation} from '@react-navigation/native';
 
 type FilterType = 'all' | 'new' | 'inprogress' | 'closed';
+type TypeFilter = 'all' | 'lead' | 'data';
 
 export const LeadsScreen: React.FC = () => {
   const {theme} = useTheme();
+  const {user} = useAuth();
   const navigation = useNavigation<any>();
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<FilterType>('all');
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const {data: leads, isLoading, refetch} = useQuery({
-    queryKey: ['leads'],
-    queryFn: () => leadService.getLeads(),
+    queryKey: ['leads', typeFilter],
+    queryFn: () => leadService.getLeads(typeFilter !== 'all' ? {type: typeFilter as LeadType} : undefined),
   });
+
+  const softDeleteMutation = useMutation({
+    mutationFn: (leadId: string) => leadService.softDeleteLead(leadId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['leads']});
+      Alert.alert('Success', 'Lead moved to trash');
+    },
+    onError: (error: any) => {
+      Alert.alert('Error', error.message || 'Failed to delete lead');
+    },
+  });
+
+  // Add trash button in header for admin/owner
+  useEffect(() => {
+    if (user && ['admin'].includes(user.role)) {
+      navigation.setOptions({
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Trash')}
+            style={{marginRight: 15}}>
+            <Icon name="trash-outline" size={24} color={theme.colors.text} />
+          </TouchableOpacity>
+        ),
+      });
+    }
+  }, [user, navigation, theme]);
+
+  const handleSoftDelete = (leadId: string, leadName: string) => {
+    Alert.alert(
+      'Delete Lead',
+      `Move "${leadName}" to trash?`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => softDeleteMutation.mutate(leadId),
+        },
+      ],
+    );
+  };
+
+  const getTypeBadge = (type: LeadType) => {
+    return type === 'lead'
+      ? {label: 'Website', color: '#4CAF50'}
+      : {label: 'Market', color: '#FF9800'};
+  };
 
   const filteredLeads = leads?.filter(lead => {
     const matchesSearch = 
@@ -42,25 +95,32 @@ export const LeadsScreen: React.FC = () => {
     return matchesSearch;
   });
 
-  const renderLeadCard = ({item}: {item: Lead}) => (
-    <Card style={styles.leadCard}>
-      <View style={styles.leadHeader}>
-        <View style={styles.leadInfo}>
-          <Avatar name={item.name} size={48} />
-          <View style={styles.leadDetails}>
-            <Text style={[theme.typography.body1, {color: theme.colors.text}]}>
-              {item.name}
-            </Text>
-            <Text style={[theme.typography.caption, {color: theme.colors.textSecondary}]}>
-              {item.phone}
-            </Text>
-          </View>
+  const renderLeadCard = ({item}: {item: Lead}) => {
+    const typeBadge = getTypeBadge(item.type);
+    return (
+      <Card style={styles.leadCard}>
+        {/* Type Badge */}
+        <View style={[styles.typeBadge, {backgroundColor: typeBadge.color}]}>
+          <Text style={styles.typeBadgeText}>{typeBadge.label}</Text>
         </View>
-        <Badge
-          text={item.status.toUpperCase()}
-          variant={item.status === 'new' ? 'followUp' : 'default'}
-        />
-      </View>
+
+        <View style={styles.leadHeader}>
+          <View style={styles.leadInfo}>
+            <Avatar name={item.name} size={48} />
+            <View style={styles.leadDetails}>
+              <Text style={[theme.typography.body1, {color: theme.colors.text}]}>
+                {item.name}
+              </Text>
+              <Text style={[theme.typography.caption, {color: theme.colors.textSecondary}]}>
+                {item.phone}
+              </Text>
+            </View>
+          </View>
+          <Badge
+            text={item.status.toUpperCase()}
+            variant={item.status === 'new' ? 'followUp' : 'default'}
+          />
+        </View>
 
       <View style={styles.metaRow}>
         <View style={styles.metaItem}>
@@ -132,9 +192,19 @@ export const LeadsScreen: React.FC = () => {
           <Icon name="chatbox-outline" size={16} color="#FFFFFF" />
           <Text style={[theme.typography.caption, {color: '#FFFFFF'}]}>Notes</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            {backgroundColor: '#ff6b6b', borderRadius: theme.borderRadius.md},
+          ]}
+          onPress={() => handleSoftDelete(item.id, item.name)}>
+          <Icon name="trash-outline" size={16} color="#FFFFFF" />
+        </TouchableOpacity>
       </View>
     </Card>
-  );
+    );
+  };
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -154,7 +224,56 @@ export const LeadsScreen: React.FC = () => {
         />
       </View>
 
-      {/* Filter Tabs */}
+      {/* Type Filter Tabs */}
+      <View style={styles.typeFilterContainer}>
+        <TouchableOpacity
+          style={[
+            styles.typeFilterTab,
+            typeFilter === 'all' && {backgroundColor: theme.colors.primary},
+            {borderRadius: theme.borderRadius.md},
+          ]}
+          onPress={() => setTypeFilter('all')}>
+          <Text
+            style={[
+              theme.typography.body2,
+              {color: typeFilter === 'all' ? '#FFFFFF' : theme.colors.text},
+            ]}>
+            All
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.typeFilterTab,
+            typeFilter === 'lead' && {backgroundColor: '#4CAF50'},
+            {borderRadius: theme.borderRadius.md},
+          ]}
+          onPress={() => setTypeFilter('lead')}>
+          <Text
+            style={[
+              theme.typography.body2,
+              {color: typeFilter === 'lead' ? '#FFFFFF' : theme.colors.text},
+            ]}>
+            🌐 Website Leads
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.typeFilterTab,
+            typeFilter === 'data' && {backgroundColor: '#FF9800'},
+            {borderRadius: theme.borderRadius.md},
+          ]}
+          onPress={() => setTypeFilter('data')}>
+          <Text
+            style={[
+              theme.typography.body2,
+              {color: typeFilter === 'data' ? '#FFFFFF' : theme.colors.text},
+            ]}>
+            📊 Market Data
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Status Filter Tabs */}
       <View style={styles.filterContainer}>
         <TouchableOpacity
           style={[
@@ -250,6 +369,18 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
   },
+  typeFilterContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    gap: 8,
+  },
+  typeFilterTab: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
   filterContainer: {
     flexDirection: 'row',
     paddingHorizontal: 16,
@@ -266,6 +397,21 @@ const styles = StyleSheet.create({
   },
   leadCard: {
     marginBottom: 12,
+    position: 'relative',
+  },
+  typeBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    zIndex: 1,
+  },
+  typeBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   leadHeader: {
     flexDirection: 'row',

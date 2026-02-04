@@ -8,6 +8,7 @@ export {DashboardScreen} from './DashboardScreen';
 export {LeadsScreen} from './LeadsScreen';
 export {AddLeadScreen} from './AddLeadScreen';
 export {LeadDetailsScreen} from './LeadDetailsScreen';
+export {TrashScreen} from './TrashScreen';
 
 // Follow-ups & Backlogs
 export {FollowUpScreen} from './FollowUpScreen';

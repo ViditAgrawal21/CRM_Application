@@ -16,6 +16,7 @@ import {ReportsScreen} from '../screens/ReportsScreen';
 import {DailyReportScreen} from '../screens/DailyReportScreen';
 import {MonthlyReportScreen} from '../screens/MonthlyReportScreen';
 import {BulkUploadScreen} from '../screens/BulkUploadScreen';
+import {TrashScreen} from '../screens/TrashScreen';
 import {BottomTabNavigator} from './BottomTabNavigator';
 import {LoadingSpinner} from '../components';
 import {useTheme} from '../hooks/useTheme';
@@ -119,6 +120,17 @@ export const RootNavigator: React.FC = () => {
               name="BulkUpload"
               component={BulkUploadScreen}
               options={{title: 'Bulk Upload'}}
+            />
+            <Stack.Screen
+              name="Trash"
+              component={TrashScreen}
+              options={{
+                title: 'Deleted Leads',
+                headerStyle: {
+                  backgroundColor: theme.colors.surface,
+                },
+                headerTintColor: theme.colors.text,
+              }}
             />
           </>
         )}

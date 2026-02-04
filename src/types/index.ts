@@ -42,6 +42,10 @@ export interface Lead {
   created_at: string;
   updated_at: string;
   assignedUser?: User;
+  is_deleted?: boolean;
+  deleted_by?: string;
+  deleted_at?: string;
+  deleted_by_user?: User;
 }
 
 export interface CreateLeadData {

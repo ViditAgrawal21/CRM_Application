@@ -66,4 +66,33 @@ export const leadService = {
     );
     return response.data.data;
   },
+
+  // Soft delete lead (move to trash)
+  softDeleteLead: async (leadId: string): Promise<Lead> => {
+    const response = await apiClient.delete<{success: boolean; data: Lead}>(
+      `/leads/${leadId}/soft`,
+    );
+    return response.data.data;
+  },
+
+  // Get all deleted leads (admin only)
+  getDeletedLeads: async (): Promise<Lead[]> => {
+    const response = await apiClient.get<{success: boolean; data: Lead[]}>(
+      '/leads/deleted',
+    );
+    return response.data.data;
+  },
+
+  // Restore deleted lead (admin only)
+  restoreLead: async (leadId: string): Promise<Lead> => {
+    const response = await apiClient.patch<{success: boolean; data: Lead}>(
+      `/leads/${leadId}/restore`,
+    );
+    return response.data.data;
+  },
+
+  // Permanently delete lead (admin only)
+  permanentDeleteLead: async (leadId: string): Promise<void> => {
+    await apiClient.delete(`/leads/${leadId}/permanent`);
+  },
 };
