@@ -16,10 +16,14 @@ import {ReportsScreen} from '../screens/ReportsScreen';
 import {DailyReportScreen} from '../screens/DailyReportScreen';
 import {MonthlyReportScreen} from '../screens/MonthlyReportScreen';
 import {BulkUploadScreen} from '../screens/BulkUploadScreen';
+import {BulkUploadMenuScreen} from '../screens/BulkUploadMenuScreen';
 import {TrashScreen} from '../screens/TrashScreen';
+import {PropertyDetailsScreen} from '../screens/PropertyDetailsScreen';
+import {SharePropertyScreen} from '../screens/SharePropertyScreen';
 import {BottomTabNavigator} from './BottomTabNavigator';
 import {LoadingSpinner} from '../components';
 import {useTheme} from '../hooks/useTheme';
+import {navigationRef} from './RootNavigation';
 
 const Stack = createNativeStackNavigator();
 
@@ -32,7 +36,7 @@ export const RootNavigator: React.FC = () => {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         screenOptions={{
           headerStyle: {
@@ -122,6 +126,11 @@ export const RootNavigator: React.FC = () => {
               options={{title: 'Bulk Upload'}}
             />
             <Stack.Screen
+              name="BulkUploadMenu"
+              component={BulkUploadMenuScreen}
+              options={{title: 'Upload Options'}}
+            />
+            <Stack.Screen
               name="Trash"
               component={TrashScreen}
               options={{
@@ -131,6 +140,16 @@ export const RootNavigator: React.FC = () => {
                 },
                 headerTintColor: theme.colors.text,
               }}
+            />
+            <Stack.Screen
+              name="PropertyDetails"
+              component={PropertyDetailsScreen}
+              options={{title: 'Property Details'}}
+            />
+            <Stack.Screen
+              name="ShareProperty"
+              component={SharePropertyScreen}
+              options={{title: 'Share Property'}}
             />
           </>
         )}

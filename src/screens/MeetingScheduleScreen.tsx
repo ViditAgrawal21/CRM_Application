@@ -68,8 +68,8 @@ export const MeetingScheduleScreen: React.FC = () => {
     mutationFn: async ({meetingId, rescheduleRemark}: {meetingId: string; rescheduleRemark?: string}) => {
       await meetingService.completeMeeting(meetingId);
       // If reschedule remark provided, update lead remark for auto-sync
-      if (rescheduleRemark && selectedMeeting?.lead_id) {
-        await leadService.updateLeadRemark(selectedMeeting.lead_id, rescheduleRemark);
+      if (rescheduleRemark && selectedMeeting?.leadId) {
+        await leadService.updateLeadRemark(selectedMeeting.leadId, rescheduleRemark);
       }
     },
     onSuccess: () => {
@@ -139,7 +139,7 @@ export const MeetingScheduleScreen: React.FC = () => {
     }
     rescheduleMutation.mutate({
       meetingId: selectedMeeting.id,
-      leadId: selectedMeeting.lead_id,
+      leadId: selectedMeeting.leadId,
       rescheduleRemark: `Meeting ${rescheduleText}`,
     });
   };
@@ -151,8 +151,8 @@ export const MeetingScheduleScreen: React.FC = () => {
   };
 
   const renderMeetingCard = ({item}: {item: Meeting}) => {
-    const lead = item.lead || leads?.find(l => l.id === item.lead_id);
-    const isPast = new Date(item.scheduled_at) < new Date();
+    const lead = item.lead || leads?.find(l => l.id === item.leadId);
+    const isPast = new Date(item.scheduledAt) < new Date();
     const isCompleted = item.status === 'completed';
     const extractedTime = extractTimeFromRemark(item.remark || '');
 
@@ -188,7 +188,7 @@ export const MeetingScheduleScreen: React.FC = () => {
           <View style={styles.infoRow}>
             <Icon name="time-outline" size={18} color={theme.colors.textSecondary} />
             <Text style={[theme.typography.body2, {color: theme.colors.text, marginLeft: 8}]}>
-              {formatDate(item.scheduled_at)} • {formatTime(item.scheduled_at)}
+              {formatDate(item.scheduledAt)} • {formatTime(item.scheduledAt)}
             </Text>
           </View>
 
@@ -632,20 +632,20 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     maxHeight: '90%',
-    padding: 24,
+    padding: 16,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 16,
   },
   picker: {
     borderWidth: 1,
     maxHeight: 200,
   },
   leadOption: {
-    padding: 12,
+    padding: 10,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.05)',
   },
@@ -653,34 +653,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderWidth: 1,
-    fontSize: 16,
+    fontSize: 15,
   },
   textArea: {
-    height: 80,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    height: 70,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderWidth: 1,
-    fontSize: 16,
+    fontSize: 15,
     textAlignVertical: 'top',
   },
   suggestionSection: {
-    marginTop: 16,
+    marginTop: 12,
   },
   suggestions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   suggestionChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 16,
   },
   modalActions: {
     flexDirection: 'row',
-    marginTop: 24,
+    marginTop: 16,
   },
 });

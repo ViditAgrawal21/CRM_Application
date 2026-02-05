@@ -68,8 +68,8 @@ export const VisitScheduleScreen: React.FC = () => {
     mutationFn: async ({visitId, rescheduleRemark}: {visitId: string; rescheduleRemark?: string}) => {
       await visitService.completeVisit(visitId);
       // If reschedule remark provided, update lead remark for auto-sync
-      if (rescheduleRemark && selectedVisit?.lead_id) {
-        await leadService.updateLeadRemark(selectedVisit.lead_id, rescheduleRemark);
+      if (rescheduleRemark && selectedVisit?.leadId) {
+        await leadService.updateLeadRemark(selectedVisit.leadId, rescheduleRemark);
       }
     },
     onSuccess: () => {
@@ -139,7 +139,7 @@ export const VisitScheduleScreen: React.FC = () => {
     }
     rescheduleMutation.mutate({
       visitId: selectedVisit.id,
-      leadId: selectedVisit.lead_id,
+      leadId: selectedVisit.leadId,
       rescheduleRemark: `Visit ${rescheduleText}`,
     });
   };
@@ -151,8 +151,8 @@ export const VisitScheduleScreen: React.FC = () => {
   };
 
   const renderVisitCard = ({item}: {item: Visit}) => {
-    const lead = item.lead || leads?.find(l => l.id === item.lead_id);
-    const isPast = new Date(item.scheduled_at) < new Date();
+    const lead = item.lead || leads?.find(l => l.id === item.leadId);
+    const isPast = new Date(item.scheduledAt) < new Date();
     const isCompleted = item.status === 'completed';
     const extractedTime = extractTimeFromRemark(item.remark || '');
 
@@ -194,7 +194,7 @@ export const VisitScheduleScreen: React.FC = () => {
                 PROPERTY VISIT
               </Text>
               <Text style={[theme.typography.body2, {color: theme.colors.text}]}>
-                {item.site_location}
+                {item.siteLocation}
               </Text>
             </View>
           </View>
@@ -202,7 +202,7 @@ export const VisitScheduleScreen: React.FC = () => {
           <View style={styles.infoRow}>
             <Icon name="time-outline" size={18} color={theme.colors.textSecondary} />
             <Text style={[theme.typography.body2, {color: theme.colors.text, marginLeft: 8}]}>
-              {formatDate(item.scheduled_at)} • {formatTime(item.scheduled_at)}
+              {formatDate(item.scheduledAt)} • {formatTime(item.scheduledAt)}
             </Text>
           </View>
 
@@ -568,22 +568,22 @@ const styles = StyleSheet.create({
   },
   filterTabs: {
     flexDirection: 'row',
-    padding: 8,
-    marginHorizontal: 16,
-    marginTop: 16,
+    padding: 6,
+    marginHorizontal: 12,
+    marginTop: 12,
     borderRadius: 8,
   },
   filterTab: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 8,
     alignItems: 'center',
     borderRadius: 6,
   },
   list: {
-    padding: 16,
+    padding: 12,
   },
   card: {
-    marginBottom: 12,
+    marginBottom: 10,
   },
   cardHeader: {
     flexDirection: 'row',

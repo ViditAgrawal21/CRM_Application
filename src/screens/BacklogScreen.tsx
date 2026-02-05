@@ -67,7 +67,7 @@ export const BacklogScreen: React.FC = () => {
             MISSED DATE
           </Text>
           <Text style={[theme.typography.body2, {color: theme.colors.error}]}>
-            {formatDate(item.reminder_at)}
+            {formatDate(item.reminderAt)}
           </Text>
         </View>
         <View style={styles.metaItem}>
@@ -75,7 +75,7 @@ export const BacklogScreen: React.FC = () => {
             TIME
           </Text>
           <Text style={[theme.typography.body2, {color: theme.colors.error}]}>
-            {formatTime(item.reminder_at)}
+            {formatTime(item.reminderAt)}
           </Text>
         </View>
       </View>
@@ -104,7 +104,7 @@ export const BacklogScreen: React.FC = () => {
             styles.actionButtonLarge,
             {backgroundColor: theme.colors.viewMore, borderRadius: theme.borderRadius.md},
           ]}
-          onPress={() => navigation.navigate('LeadDetails', {leadId: item.lead_id})}>
+          onPress={() => navigation.navigate('LeadDetails', {leadId: item.leadId})}>
           <Text style={[theme.typography.caption, {color: '#FFFFFF', fontWeight: '600'}]}>
             VIEW MORE
           </Text>

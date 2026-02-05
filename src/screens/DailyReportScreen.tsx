@@ -7,17 +7,21 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  Linking,
+  Share,
 } from 'react-native';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import Icon from '@react-native-vector-icons/ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {useTheme} from '../hooks/useTheme';
+import {useAuth} from '../hooks/useAuth';
 import {Card, Button, LoadingSpinner} from '../components';
 import {reportService} from '../services/reportService';
 import {SaveDailyReportData} from '../types';
 
 export const DailyReportScreen: React.FC = () => {
   const {theme} = useTheme();
+  const {user} = useAuth();
   const queryClient = useQueryClient();
 
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -67,6 +71,71 @@ export const DailyReportScreen: React.FC = () => {
       totalCalls: parseInt(formData.totalCalls, 10) || 0,
       prospects: [],
       nextDayPlan: formData.nextDayPlan,
+    });
+  };
+
+  const handleShare = async () => {
+    if (!report) {
+      Alert.alert('Error', 'Please save the report first');
+      return;
+    }
+
+    const message = `
+📊 Daily Report - ${formatDisplayDate(selectedDate)}
+
+📅 Today's Activities:
+• Meetings: ${formData.meetingsToday}
+• Site Visits: ${formData.visitsToday}
+• Total Calls: ${formData.totalCalls}
+
+📈 Auto-tracked Stats:
+• Follow-ups Done: ${report.followupsDone || 0}
+• Leads Added: ${report.leadsAdded || 0}
+• Deals Closed: ${report.dealsClosed || 0}
+
+📝 Next Day Plan:
+${formData.nextDayPlan || 'No plan added'}
+
+Submitted by: ${user?.name}
+    `.trim();
+
+    try {
+      await Share.share({
+        message,
+      });
+    } catch (error) {
+      console.error('Share error:', error);
+    }
+  };
+
+  const handleWhatsAppShare = () => {
+    if (!report) {
+      Alert.alert('Error', 'Please save the report first');
+      return;
+    }
+
+    const message = `
+📊 Daily Report - ${formatDisplayDate(selectedDate)}
+
+📅 Today's Activities:
+• Meetings: ${formData.meetingsToday}
+• Site Visits: ${formData.visitsToday}
+• Total Calls: ${formData.totalCalls}
+
+📈 Auto-tracked Stats:
+• Follow-ups Done: ${report.followupsDone || 0}
+• Leads Added: ${report.leadsAdded || 0}
+• Deals Closed: ${report.dealsClosed || 0}
+
+📝 Next Day Plan:
+${formData.nextDayPlan || 'No plan added'}
+
+Submitted by: ${user?.name}
+    `.trim();
+
+    const url = `whatsapp://send?text=${encodeURIComponent(message)}`;
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Error', 'WhatsApp is not installed');
     });
   };
 
@@ -287,6 +356,29 @@ export const DailyReportScreen: React.FC = () => {
           size="large"
           style={{marginTop: 24}}
         />
+
+        {/* Share Buttons */}
+        {report && (
+          <View style={styles.shareButtons}>
+            <TouchableOpacity
+              style={[styles.shareButton, {backgroundColor: theme.colors.primary}]}
+              onPress={handleShare}>
+              <Icon name="share-outline" size={20} color="#FFFFFF" />
+              <Text style={[theme.typography.body1, {color: '#FFFFFF', marginLeft: 8}]}>
+                Share Report
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.shareButton, {backgroundColor: '#25D366'}]}
+              onPress={handleWhatsAppShare}>
+              <Icon name="logo-whatsapp" size={20} color="#FFFFFF" />
+              <Text style={[theme.typography.body1, {color: '#FFFFFF', marginLeft: 8}]}>
+                WhatsApp
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -344,5 +436,18 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  shareButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  shareButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 8,
   },
 });

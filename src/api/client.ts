@@ -2,6 +2,7 @@ import axios, {AxiosInstance, InternalAxiosRequestConfig, AxiosError} from 'axio
 import {Alert} from 'react-native';
 import {config} from '../config';
 import {getToken, clearStorage} from '../utils/storage';
+import * as RootNavigation from '../navigation/RootNavigation';
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: config.apiBaseUrl,
@@ -39,6 +40,7 @@ apiClient.interceptors.response.use(
     }
 
     const status = error.response?.status;
+    const responseData = error.response?.data as any;
 
     // Handle different HTTP status codes
     switch (status) {
@@ -48,26 +50,57 @@ apiClient.interceptors.response.use(
         Alert.alert(
           'Session Expired',
           'Your session has expired. Please login again.',
+          [
+            {
+              text: 'OK',
+              onPress: () => RootNavigation.replace('Login'),
+            },
+          ],
         );
         break;
 
       case 403:
-        Alert.alert('Access Denied', 'You do not have permission to perform this action.');
+        // Check if this is an account deactivation error
+        if (responseData?.code === 'ACCOUNT_DEACTIVATED') {
+          await clearStorage();
+          Alert.alert(
+            'Account Deactivated',
+            responseData?.message ||
+              'Your account has been deactivated. Please contact your administrator.',
+            [
+              {
+                text: 'OK',
+                onPress: () => RootNavigation.replace('Login'),
+              },
+            ],
+          );
+        } else {
+          Alert.alert(
+            'Access Denied',
+            responseData?.message || 'You do not have permission to perform this action.',
+          );
+        }
         break;
 
       case 404:
-        Alert.alert('Not Found', 'The requested resource was not found.');
+        Alert.alert(
+          'Not Found',
+          responseData?.message || 'The requested resource was not found.',
+        );
         break;
 
       case 500:
       case 502:
       case 503:
-        Alert.alert('Server Error', 'Something went wrong on our end. Please try again later.');
+        Alert.alert(
+          'Server Error',
+          responseData?.message || 'Something went wrong on our end. Please try again later.',
+        );
         break;
 
       default:
         // Show error message from API if available
-        const message = (error.response?.data as any)?.message || 'An unexpected error occurred';
+        const message = responseData?.message || responseData?.error || 'An unexpected error occurred';
         Alert.alert('Error', message);
     }
 

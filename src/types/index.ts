@@ -5,13 +5,15 @@ export interface User {
   name: string;
   phone: string;
   role: UserRole;
-  is_active: boolean;
-  created_by?: string;
-  created_at?: string;
+  isActive: boolean;
+  parentId?: string;
+  createdBy?: string;
+  createdAt?: string;
   monthlyMeetingTarget?: number;
   monthlyVisitTarget?: number;
   monthlyRevenueTarget?: number;
   monthlyBonus?: number;
+  level?: number;
 }
 
 export interface AuthResponse {
@@ -37,15 +39,15 @@ export interface Lead {
   location: string;
   remark?: string;
   status: LeadStatus;
-  assigned_to?: string;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
+  assignedTo?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
   assignedUser?: User;
-  is_deleted?: boolean;
-  deleted_by?: string;
-  deleted_at?: string;
-  deleted_by_user?: User;
+  isDeleted?: boolean;
+  deletedBy?: string;
+  deletedAt?: string;
+  deletedByUser?: User;
 }
 
 export interface CreateLeadData {
@@ -63,14 +65,14 @@ export type FollowupStatus = 'pending' | 'done' | 'cancelled';
 
 export interface Followup {
   id: string;
-  lead_id: string;
-  reminder_at: string;
+  leadId: string;
+  reminderAt: string;
   status: FollowupStatus;
   outcome?: string;
   notes?: string;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
   lead?: Lead;
 }
 
@@ -78,32 +80,32 @@ export type MeetingStatus = 'scheduled' | 'completed' | 'cancelled';
 
 export interface Meeting {
   id: string;
-  lead_id: string;
-  scheduled_at: string;
+  leadId: string;
+  scheduledAt: string;
   location: string;
   status: MeetingStatus;
   outcome?: string;
   notes?: string;
   remark?: string;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
   lead?: Lead;
   user?: User;
 }
 
 export interface Visit {
   id: string;
-  lead_id: string;
-  scheduled_at: string;
-  site_location: string;
+  leadId: string;
+  scheduledAt: string;
+  siteLocation: string;
   status: MeetingStatus;
   outcome?: string;
   notes?: string;
   remark?: string;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
   lead?: Lead;
   user?: User;
 }
@@ -112,18 +114,18 @@ export interface Template {
   id: string;
   title: string;
   message: string;
-  is_active: boolean;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
+  isActive: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Note {
   id: string;
-  lead_id: string;
+  leadId: string;
   text: string;
-  created_by: string;
-  created_at: string;
+  createdBy: string;
+  createdAt: string;
   user?: User;
 }
 
@@ -131,40 +133,87 @@ export type LogAction = 'call' | 'whatsapp' | 'template' | 'meeting' | 'visit' |
 
 export interface Log {
   id: string;
-  lead_id: string;
+  leadId: string;
   action: LogAction;
   duration?: number;
   outcome?: string;
   notes?: string;
-  created_by: string;
-  created_at: string;
+  templateId?: string;
+  createdBy: string;
+  createdAt: string;
   user?: User;
 }
 
+export type PropertyStatus = 'available' | 'sold' | 'under_construction';
+
 export interface Property {
-  id: string;
-  projectName: string;
-  builders: string;
+  id: number;
+  title: string;
+  propertyType: string;
   location: string;
-  configuration: string;
-  price: string;
-  possession: string;
-  link: string;
-  contactUs: string;
+  imageUrl: string;
+  status: PropertyStatus;
+  possession?: string;
+  totalLandAcres?: number;
+  totalTowers?: string;
+  amenitiesSummary?: string;
+  totalFloors?: number;
+  listingBy?: string;
+  phone?: string;
+  driveLink?: string;
+  unitsLine?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface DashboardStats {
   overview: {
     totalLeads: number;
-    pendingFollowups: number;
-    missedFollowups: number;
-    upcomingMeetings: number;
-    upcomingVisits: number;
+    totalAdmins: number;
+    totalManagers: number;
+    totalEmployees: number;
+    activeUsers: number;
+    pendingFollowups?: number;
+    missedFollowups?: number;
+    upcomingMeetings?: number;
+    upcomingVisits?: number;
   };
-  leadsByStatus: Record<LeadStatus, number>;
+  leadsByStatus: {
+    new: number;
+    contacted: number;
+    interested: number;
+    not_interested: number;
+    prospect: number;
+    converted: number;
+    spam: number;
+  };
+  leadsByType: {
+    websiteLeads: number;
+    marketData: number;
+  };
+  deletedLeads: number;
   thisMonth: {
-    meetings: number;
-    visits: number;
+    totalMeetings: number;
+    totalVisits: number;
+    totalCalls: number;
+    totalBookings: number;
+    conversions: number;
+    meetings?: number;
+    visits?: number;
+  };
+  performance: {
+    topPerformer: {
+      name: string;
+      role: string;
+      meetings: number;
+      visits: number;
+    };
+  };
+  metrics: {
+    clientsDropped: number;
+    serviceManagers: number;
+    salesEmployees: number;
+    recentLeadsCount: number;
   };
   team?: {
     total: number;
@@ -172,10 +221,10 @@ export interface DashboardStats {
     inactive: number;
   };
   // For targets in Reports screen
-  leadsAdded: number;
-  leadsTarget: number;
-  meetings: number;
-  meetingsTarget: number;
+  leadsAdded?: number;
+  leadsTarget?: number;
+  meetings?: number;
+  meetingsTarget?: number;
 }
 
 export interface DailyReport {
@@ -274,4 +323,15 @@ export interface SaveDailyReportData {
   totalCalls: number;
   prospects: ProspectEntry[];
   nextDayPlan: string;
+}
+
+export interface SharePropertyRequest {
+  leadId?: string;
+  phoneNumber?: string;
+}
+
+export interface SharePropertyResponse {
+  whatsappLink: string;
+  property: Property;
+  message: string;
 }

@@ -15,6 +15,9 @@ import {useAuth} from '../hooks/useAuth';
 import {Card, LoadingSpinner, Badge, Avatar} from '../components';
 import {dashboardService} from '../services/reportService';
 import {meetingService, visitService} from '../services/meetingService';
+import {leadService} from '../services/leadService';
+import {followupService} from '../services/followupService';
+import {templateService} from '../services/templateService';
 import {getGreeting, getRoleLabel, isOwnerRole, formatDate, formatTime, extractTimeFromRemark} from '../utils/helpers';
 import {useNavigation} from '@react-navigation/native';
 import {Meeting, Visit} from '../types';
@@ -32,6 +35,27 @@ export const DashboardScreen: React.FC = () => {
   const {data: stats, isLoading, refetch} = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: () => dashboardService.getStats(),
+  });
+
+  // Fetch counts for quick action cards
+  const {data: leads} = useQuery({
+    queryKey: ['leads'],
+    queryFn: () => leadService.getLeads(),
+  });
+
+  const {data: followups} = useQuery({
+    queryKey: ['followups-today'],
+    queryFn: () => followupService.getTodayFollowups(),
+  });
+
+  const {data: backlog} = useQuery({
+    queryKey: ['followups-backlog'],
+    queryFn: () => followupService.getBacklog(),
+  });
+
+  const {data: templates} = useQuery({
+    queryKey: ['templates'],
+    queryFn: () => templateService.getTemplates(),
   });
 
   // Fetch meetings for owner dashboard
@@ -56,15 +80,24 @@ export const DashboardScreen: React.FC = () => {
 
   const greeting = getGreeting();
 
+  // Calculate counts for action cards
+  const leadsCount = leads?.filter(l => l.type === 'lead').length || 0;
+  const dataCount = leads?.filter(l => l.type === 'data').length || 0;
+  const followupsCount = followups?.length || 0;
+  const backlogCount = backlog?.length || 0;
+  const meetingsCount = meetings?.filter(m => m.status === 'scheduled').length || 0;
+  const visitsCount = visits?.filter(v => v.status === 'scheduled').length || 0;
+  const templatesCount = templates?.length || 0;
+
   const actionCards = [
-    {title: 'Lead (+)', icon: 'person-add-outline', screen: 'AddLead', params: {type: 'lead'}, color: '#FF9800'},
-    {title: 'Data', icon: 'document-text-outline', screen: 'AddLead', params: {type: 'data'}, color: '#2196F3'},
-    {title: 'Follow Up', icon: 'time-outline', screen: 'FollowUp', color: '#4CAF50'},
-    {title: 'Backlog', icon: 'alert-circle-outline', screen: 'Backlog', color: '#FF9800'},
-    {title: 'Meeting Schedule', icon: 'calendar-outline', screen: 'MeetingSchedule', color: '#9C27B0'},
-    {title: 'Visit Schedule', icon: 'navigate-outline', screen: 'VisitSchedule', color: '#F44336'},
-    {title: 'Bulk Upload', icon: 'cloud-upload-outline', screen: 'BulkUpload', params: {type: 'lead'}, color: '#009688'},
-    {title: 'Template', icon: 'chatbox-outline', screen: 'Templates', color: '#2196F3'},
+    {title: 'Lead', icon: 'person-add-outline', screen: 'Leads', params: {type: 'lead'}, color: '#FF9800', count: leadsCount},
+    {title: 'Data', icon: 'document-text-outline', screen: 'Leads', params: {type: 'data'}, color: '#2196F3', count: dataCount},
+    {title: 'Follow Up', icon: 'time-outline', screen: 'FollowUp', color: '#4CAF50', count: followupsCount},
+    {title: 'Backlog', icon: 'alert-circle-outline', screen: 'Backlog', color: '#FF9800', count: backlogCount},
+    {title: 'Meeting Schedule', icon: 'calendar-outline', screen: 'MeetingSchedule', color: '#9C27B0', count: meetingsCount},
+    {title: 'Visit Schedule', icon: 'navigate-outline', screen: 'VisitSchedule', color: '#F44336', count: visitsCount},
+    {title: 'Lead/Data Upload', icon: 'cloud-upload-outline', screen: 'BulkUpload', color: '#009688', showMenu: true},
+    {title: 'Template', icon: 'chatbox-outline', screen: 'Templates', color: '#2196F3', count: templatesCount},
     {title: 'Daily Report', icon: 'today-outline', screen: 'DailyReport', color: '#4CAF50'},
     {title: 'Monthly Report', icon: 'calendar-number-outline', screen: 'MonthlyReport', color: '#00BCD4'},
   ];
@@ -81,7 +114,7 @@ export const DashboardScreen: React.FC = () => {
   };
 
   const renderActivityItem = (activity: Meeting | Visit, type: 'meeting' | 'visit') => {
-    const isPast = new Date(activity.scheduled_at) < new Date();
+    const isPast = new Date(activity.scheduledAt) < new Date();
     const statusColor = getStatusColor(activity.status, isPast);
     const extractedTime = extractTimeFromRemark(activity.remark || '');
 
@@ -96,7 +129,7 @@ export const DashboardScreen: React.FC = () => {
               {activity.lead?.name || 'Unknown Lead'}
             </Text>
             <Text style={[theme.typography.caption, {color: theme.colors.textSecondary}]}>
-              {formatDate(activity.scheduled_at)} • {formatTime(activity.scheduled_at)}
+              {formatDate(activity.scheduledAt)} • {formatTime(activity.scheduledAt)}
             </Text>
           </View>
           <Badge
@@ -141,10 +174,10 @@ export const DashboardScreen: React.FC = () => {
   const allActivities = [
     ...(meetings || []).map(m => ({...m, type: 'meeting' as const})),
     ...(visits || []).map(v => ({...v, type: 'visit' as const})),
-  ].sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+  ].sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
 
   const upcomingActivities = allActivities.filter(
-    a => a.status === 'scheduled' && new Date(a.scheduled_at) >= new Date()
+    a => a.status === 'scheduled' && new Date(a.scheduledAt) >= new Date()
   );
 
   return (
@@ -221,7 +254,7 @@ export const DashboardScreen: React.FC = () => {
                 Meetings
               </Text>
               <Text style={[theme.typography.h4, {color: theme.colors.text}]}>
-                {stats?.thisMonth.meetings || 12}
+                {stats?.thisMonth.totalMeetings || stats?.thisMonth.meetings || 12}
               </Text>
             </View>
             <View style={styles.statItem}>
@@ -230,7 +263,7 @@ export const DashboardScreen: React.FC = () => {
                 Visits
               </Text>
               <Text style={[theme.typography.h4, {color: theme.colors.text}]}>
-                {stats?.thisMonth.visits || 8}
+                {stats?.thisMonth.totalVisits || stats?.thisMonth.visits || 8}
               </Text>
             </View>
             <View style={styles.statItem}>
@@ -355,18 +388,26 @@ export const DashboardScreen: React.FC = () => {
                 theme.shadows.sm,
               ]}
               onPress={() => {
-                if (action.screen) {
+                if (action.showMenu) {
+                  // Show menu for Bulk Upload
+                  navigation.navigate('BulkUploadMenu');
+                } else if (action.screen) {
                   navigation.navigate(action.screen, action.params || {});
                 }
               }}>
               <View style={[styles.colorBar, {backgroundColor: action.color}]} />
+              {action.count !== undefined && (
+                <View style={[styles.countBadge, {backgroundColor: action.color}]}>
+                  <Text style={styles.countText}>{action.count}</Text>
+                </View>
+              )}
               <View style={styles.actionContent}>
                 <View
                   style={[
                     styles.iconCircle,
                     {backgroundColor: action.color + '20'},
                   ]}>
-                  <Icon name={action.icon as any} size={24} color={action.color} />
+                  <Icon name={action.icon as any} size={20} color={action.color} />
                 </View>
                 <Text
                   style={[
@@ -439,7 +480,7 @@ export const DashboardScreen: React.FC = () => {
                 <View style={styles.modalRow}>
                   <Icon name="time-outline" size={20} color={theme.colors.textSecondary} />
                   <Text style={[theme.typography.body1, {color: theme.colors.text, marginLeft: 12}]}>
-                    {formatDate(selectedActivity.scheduled_at)} at {formatTime(selectedActivity.scheduled_at)}
+                    {formatDate(selectedActivity.scheduledAt)} at {formatTime(selectedActivity.scheduledAt)}
                   </Text>
                 </View>
 
@@ -447,7 +488,7 @@ export const DashboardScreen: React.FC = () => {
                 <View style={styles.modalRow}>
                   <Icon name="location-outline" size={20} color={theme.colors.textSecondary} />
                   <Text style={[theme.typography.body1, {color: theme.colors.text, marginLeft: 12}]}>
-                    {('location' in selectedActivity ? selectedActivity.location : (selectedActivity as Visit).site_location) || 'N/A'}
+                    {('location' in selectedActivity ? selectedActivity.location : (selectedActivity as Visit).siteLocation) || 'N/A'}
                   </Text>
                 </View>
 
@@ -501,11 +542,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 24,
+    paddingBottom: 20,
   },
   header: {
-    padding: 16,
-    marginBottom: 16,
+    padding: 12,
+    marginBottom: 12,
   },
   userInfo: {
     flexDirection: 'row',
@@ -519,17 +560,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   greetingSection: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    paddingHorizontal: 12,
+    marginBottom: 12,
   },
   greetingCard: {
-    padding: 24,
+    padding: 16,
     backgroundColor: '#FF9800',
   },
   statsCard: {
-    marginHorizontal: 16,
-    marginBottom: 24,
-    padding: 20,
+    marginHorizontal: 12,
+    marginBottom: 16,
+    padding: 16,
   },
   statsHeader: {
     flexDirection: 'row',
@@ -550,8 +591,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   activitiesSection: {
-    paddingHorizontal: 16,
-    marginBottom: 24,
+    paddingHorizontal: 12,
+    marginBottom: 16,
   },
   sectionTitleRow: {
     flexDirection: 'row',
@@ -616,19 +657,19 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   sectionTitle: {
-    marginBottom: 16,
-    marginHorizontal: 16,
+    marginBottom: 12,
+    marginHorizontal: 12,
   },
   actionGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 16,
-    gap: 12,
+    paddingHorizontal: 12,
+    gap: 8,
   },
   actionCard: {
-    width: '47%',
+    width: '48%',
     overflow: 'hidden',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   colorBar: {
     width: 4,
@@ -636,14 +677,30 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
   },
+  countBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  countText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
   actionContent: {
-    padding: 16,
+    padding: 12,
     alignItems: 'center',
   },
   iconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },

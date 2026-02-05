@@ -12,12 +12,16 @@ import {
 } from 'react-native';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import Icon from '@react-native-vector-icons/ionicons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import {useRoute, useNavigation} from '@react-navigation/native';
 import {useTheme} from '../hooks/useTheme';
 import {Card, LoadingSpinner, Button, Avatar, Badge} from '../components';
 import {leadService} from '../services/leadService';
 import {noteService, logService} from '../services/noteService';
 import {templateService} from '../services/templateService';
+import {followupService} from '../services/followupService';
+import {meetingService, visitService} from '../services/meetingService';
+import {propertyService} from '../services/propertyService';
 import {formatDate, openWhatsApp, extractTimeFromRemark, getRemarkFormatSuggestions} from '../utils/helpers';
 
 export const LeadDetailsScreen: React.FC = () => {
@@ -33,6 +37,25 @@ export const LeadDetailsScreen: React.FC = () => {
   const [editRemarkModalVisible, setEditRemarkModalVisible] = useState(false);
   const [remarkText, setRemarkText] = useState('');
   const [leadRemarkText, setLeadRemarkText] = useState('');
+  
+  // Scheduling modals
+  const [followupModalVisible, setFollowupModalVisible] = useState(false);
+  const [meetingModalVisible, setMeetingModalVisible] = useState(false);
+  const [visitModalVisible, setVisitModalVisible] = useState(false);
+  
+  // Scheduling data
+  const [followupDate, setFollowupDate] = useState(new Date());
+  const [followupNotes, setFollowupNotes] = useState('');
+  const [meetingDate, setMeetingDate] = useState(new Date());
+  const [meetingLocation, setMeetingLocation] = useState('');
+  const [meetingPurpose, setMeetingPurpose] = useState('');
+  const [visitDate, setVisitDate] = useState(new Date());
+  const [visitProperty, setVisitProperty] = useState('');
+  const [visitNotes, setVisitNotes] = useState('');
+  const [propertySearch, setPropertySearch] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [activeScheduleType, setActiveScheduleType] = useState<'followup' | 'meeting' | 'visit'>('followup');
 
   const {data: lead, isLoading} = useQuery({
     queryKey: ['lead', leadId],
@@ -55,6 +78,11 @@ export const LeadDetailsScreen: React.FC = () => {
   const {data: templates} = useQuery({
     queryKey: ['templates'],
     queryFn: () => templateService.getTemplates(),
+  });
+
+  const {data: properties} = useQuery({
+    queryKey: ['properties'],
+    queryFn: () => propertyService.getProperties(),
   });
 
   // Set initial lead remark text when lead data loads
@@ -85,6 +113,59 @@ export const LeadDetailsScreen: React.FC = () => {
       setEditRemarkModalVisible(false);
       Alert.alert('Success', 'Remark updated. Meeting/Visit sync will happen automatically.');
     },
+  });
+
+  // Follow-up mutation
+  const createFollowupMutation = useMutation({
+    mutationFn: () => followupService.createFollowup({
+      leadId,
+      reminderAt: followupDate.toISOString(),
+      notes: followupNotes,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['followups-today']});
+      queryClient.invalidateQueries({queryKey: ['followups-backlog']});
+      setFollowupModalVisible(false);
+      setFollowupNotes('');
+      Alert.alert('Success', 'Follow-up scheduled successfully!');
+    },
+    onError: () => Alert.alert('Error', 'Failed to schedule follow-up'),
+  });
+
+  // Meeting mutation
+  const createMeetingMutation = useMutation({
+    mutationFn: () => meetingService.createMeeting({
+      leadId,
+      scheduledTime: meetingDate,
+      location: meetingLocation,
+      purpose: meetingPurpose,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['meetings']});
+      setMeetingModalVisible(false);
+      setMeetingLocation('');
+      setMeetingPurpose('');
+      Alert.alert('Success', 'Meeting scheduled successfully!');
+    },
+    onError: () => Alert.alert('Error', 'Failed to schedule meeting'),
+  });
+
+  // Visit mutation
+  const createVisitMutation = useMutation({
+    mutationFn: () => visitService.createVisit({
+      leadId,
+      scheduledTime: visitDate,
+      property: visitProperty,
+      notes: visitNotes,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['visits']});
+      setVisitModalVisible(false);
+      setVisitProperty('');
+      setVisitNotes('');
+      Alert.alert('Success', 'Site visit scheduled successfully!');
+    },
+    onError: () => Alert.alert('Error', 'Failed to schedule visit'),
   });
 
   const handleSendTemplate = (template: any) => {
@@ -225,7 +306,7 @@ export const LeadDetailsScreen: React.FC = () => {
               Upload Date
             </Text>
             <Text style={[theme.typography.body2, {color: theme.colors.text}]}>
-              {formatDate(lead.created_at)}
+              {formatDate(lead.createdAt)}
             </Text>
           </View>
 
@@ -245,7 +326,7 @@ export const LeadDetailsScreen: React.FC = () => {
               Last Contact
             </Text>
             <Text style={[theme.typography.body2, {color: theme.colors.text}]}>
-              {formatDate(lead.updated_at)}
+              {formatDate(lead.updatedAt)}
             </Text>
           </View>
         </Card>
@@ -349,7 +430,7 @@ export const LeadDetailsScreen: React.FC = () => {
                   theme.typography.caption,
                   {color: theme.colors.textSecondary, marginTop: 8},
                 ]}>
-                {formatDate(note.created_at)} by {note.user?.name}
+                {formatDate(note.createdAt)} by {note.user?.name}
               </Text>
             </Card>
           ))}
@@ -449,10 +530,55 @@ export const LeadDetailsScreen: React.FC = () => {
               onChangeText={setLeadRemarkText}
             />
 
+            {/* Quick Action Buttons */}
+            <View style={styles.quickActionsSection}>
+              <Text style={[theme.typography.caption, {color: theme.colors.textSecondary, marginBottom: 12}]}>
+                Quick Schedule Actions:
+              </Text>
+              <View style={styles.actionButtons}>
+                <TouchableOpacity
+                  style={[styles.scheduleButton, {backgroundColor: '#4CAF50'}]}
+                  onPress={() => {
+                    setEditRemarkModalVisible(false);
+                    setFollowupModalVisible(true);
+                  }}>
+                  <Icon name="time" size={20} color="#FFFFFF" />
+                  <Text style={[theme.typography.caption, {color: '#FFFFFF', marginTop: 4}]}>
+                    Follow-up
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[styles.scheduleButton, {backgroundColor: '#2196F3'}]}
+                  onPress={() => {
+                    setEditRemarkModalVisible(false);
+                    setMeetingModalVisible(true);
+                  }}>
+                  <Icon name="calendar" size={20} color="#FFFFFF" />
+                  <Text style={[theme.typography.caption, {color: '#FFFFFF', marginTop: 4}]}>
+                    Meeting
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[styles.scheduleButton, {backgroundColor: '#FF9800'}]}
+                  onPress={() => {
+                    setEditRemarkModalVisible(false);
+                    setPropertySearch('');
+                    setVisitModalVisible(true);
+                  }}>
+                  <Icon name="home" size={20} color="#FFFFFF" />
+                  <Text style={[theme.typography.caption, {color: '#FFFFFF', marginTop: 4}]}>
+                    Site Visit
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             {/* Format suggestions */}
             <View style={styles.suggestionSection}>
               <Text style={[theme.typography.caption, {color: theme.colors.textSecondary, marginBottom: 8}]}>
-                Suggested formats (tap to use):
+                Or use text format (tap to use):
               </Text>
               <View style={styles.suggestions}>
                 {getRemarkFormatSuggestions().map((suggestion, index) => (
@@ -583,7 +709,7 @@ export const LeadDetailsScreen: React.FC = () => {
                         theme.typography.caption,
                         {color: theme.colors.textLight, marginTop: 4},
                       ]}>
-                      {formatDate(item.created_at)} • {item.user?.name}
+                      {formatDate(item.createdAt)} • {item.user?.name}
                     </Text>
                   </View>
                 </View>
@@ -592,6 +718,235 @@ export const LeadDetailsScreen: React.FC = () => {
           </View>
         </View>
       </Modal>
+
+      {/* Follow-up Scheduling Modal */}
+      <Modal
+        visible={followupModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setFollowupModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, {backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.lg}]}>
+            <View style={styles.modalHeader}>
+              <Text style={[theme.typography.h3, {color: theme.colors.text}]}>Schedule Follow-up</Text>
+              <TouchableOpacity onPress={() => setFollowupModalVisible(false)}>
+                <Icon name="close" size={24} color={theme.colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.dateInput, {backgroundColor: theme.colors.background, borderColor: theme.colors.border}]}
+              onPress={() => { setActiveScheduleType('followup'); setShowDatePicker(true); }}>
+              <Icon name="calendar-outline" size={20} color={theme.colors.textSecondary} />
+              <Text style={[theme.typography.body2, {color: theme.colors.text, marginLeft: 12}]}>
+                {followupDate.toLocaleDateString()} at {followupDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+              </Text>
+            </TouchableOpacity>
+
+            <TextInput
+              style={[styles.textArea, {backgroundColor: theme.colors.background, color: theme.colors.text, borderColor: theme.colors.border}]}
+              placeholder="Notes (optional)"
+              placeholderTextColor={theme.colors.textLight}
+              multiline
+              numberOfLines={4}
+              value={followupNotes}
+              onChangeText={setFollowupNotes}
+            />
+
+            <Button
+              title="Schedule Follow-up"
+              onPress={() => createFollowupMutation.mutate()}
+              loading={createFollowupMutation.isPending}
+              size="large"
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Meeting Scheduling Modal */}
+      <Modal
+        visible={meetingModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setMeetingModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, {backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.lg}]}>
+            <View style={styles.modalHeader}>
+              <Text style={[theme.typography.h3, {color: theme.colors.text}]}>Schedule Meeting</Text>
+              <TouchableOpacity onPress={() => setMeetingModalVisible(false)}>
+                <Icon name="close" size={24} color={theme.colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.dateInput, {backgroundColor: theme.colors.background, borderColor: theme.colors.border}]}
+              onPress={() => { setActiveScheduleType('meeting'); setShowDatePicker(true); }}>
+              <Icon name="calendar-outline" size={20} color={theme.colors.textSecondary} />
+              <Text style={[theme.typography.body2, {color: theme.colors.text, marginLeft: 12}]}>
+                {meetingDate.toLocaleDateString()} at {meetingDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+              </Text>
+            </TouchableOpacity>
+
+            <TextInput
+              style={[styles.input, {backgroundColor: theme.colors.background, color: theme.colors.text, borderColor: theme.colors.border}]}
+              placeholder="Meeting Location *"
+              placeholderTextColor={theme.colors.textLight}
+              value={meetingLocation}
+              onChangeText={setMeetingLocation}
+            />
+
+            <TextInput
+              style={[styles.textArea, {backgroundColor: theme.colors.background, color: theme.colors.text, borderColor: theme.colors.border}]}
+              placeholder="Purpose *"
+              placeholderTextColor={theme.colors.textLight}
+              multiline
+              numberOfLines={3}
+              value={meetingPurpose}
+              onChangeText={setMeetingPurpose}
+            />
+
+            <Button
+              title="Schedule Meeting"
+              onPress={() => {
+                if (!meetingLocation || !meetingPurpose) {
+                  Alert.alert('Error', 'Please fill all required fields');
+                  return;
+                }
+                createMeetingMutation.mutate();
+              }}
+              loading={createMeetingMutation.isPending}
+              size="large"
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Visit Scheduling Modal */}
+      <Modal
+        visible={visitModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setVisitModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <ScrollView style={[styles.modalContent, {backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.lg}]}>
+            <View style={styles.modalHeader}>
+              <Text style={[theme.typography.h3, {color: theme.colors.text}]}>Schedule Site Visit</Text>
+              <TouchableOpacity onPress={() => setVisitModalVisible(false)}>
+                <Icon name="close" size={24} color={theme.colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.dateInput, {backgroundColor: theme.colors.background, borderColor: theme.colors.border}]}
+              onPress={() => { setActiveScheduleType('visit'); setShowDatePicker(true); }}>
+              <Icon name="calendar-outline" size={20} color={theme.colors.textSecondary} />
+              <Text style={[theme.typography.body2, {color: theme.colors.text, marginLeft: 12}]}>
+                {visitDate.toLocaleDateString()} at {visitDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={{marginBottom: 16}}>
+              <Text style={[theme.typography.caption, {color: theme.colors.textSecondary, marginBottom: 8}]}>
+                Select Property *
+              </Text>
+              
+              {/* Property Search */}
+              <View style={[styles.searchContainer, {backgroundColor: theme.colors.background, marginBottom: 12}]}>
+                <Icon name="search" size={18} color={theme.colors.textSecondary} />
+                <TextInput
+                  style={[styles.searchInput, {color: theme.colors.text}]}
+                  placeholder="Search properties..."
+                  placeholderTextColor={theme.colors.textLight}
+                  value={propertySearch}
+                  onChangeText={setPropertySearch}
+                />
+                {propertySearch.length > 0 && (
+                  <TouchableOpacity onPress={() => setPropertySearch('')}>
+                    <Icon name="close-circle" size={18} color={theme.colors.textSecondary} />
+                  </TouchableOpacity>
+                )}
+              </View>
+              
+              <ScrollView style={{maxHeight: 200}} nestedScrollEnabled>
+                {properties?.filter(property => 
+                  property.title.toLowerCase().includes(propertySearch.toLowerCase()) ||
+                  property.location.toLowerCase().includes(propertySearch.toLowerCase())
+                ).map((property) => (
+                  <TouchableOpacity
+                    key={property.id}
+                    style={[
+                      styles.propertyOption,
+                      {
+                        backgroundColor: visitProperty === property.title ? theme.colors.primary + '20' : theme.colors.background,
+                        borderColor: visitProperty === property.title ? theme.colors.primary : theme.colors.border,
+                      }
+                    ]}
+                    onPress={() => setVisitProperty(property.title)}>
+                    <Text style={[theme.typography.body2, {color: theme.colors.text}]}>{property.title}</Text>
+                    <Text style={[theme.typography.caption, {color: theme.colors.textSecondary}]}>{property.location}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            <TextInput
+              style={[styles.textArea, {backgroundColor: theme.colors.background, color: theme.colors.text, borderColor: theme.colors.border}]}
+              placeholder="Visit Notes (optional)"
+              placeholderTextColor={theme.colors.textLight}
+              multiline
+              numberOfLines={3}
+              value={visitNotes}
+              onChangeText={setVisitNotes}
+            />
+
+            <Button
+              title="Schedule Visit"
+              onPress={() => {
+                if (!visitProperty) {
+                  Alert.alert('Error', 'Please select a property');
+                  return;
+                }
+                createVisitMutation.mutate();
+              }}
+              loading={createVisitMutation.isPending}
+              size="large"
+              style={{marginBottom: 16}}
+            />
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={activeScheduleType === 'followup' ? followupDate : activeScheduleType === 'meeting' ? meetingDate : visitDate}
+          mode="date"
+          display="default"
+          onChange={(event, selectedDate) => {
+            setShowDatePicker(false);
+            if (selectedDate) {
+              if (activeScheduleType === 'followup') setFollowupDate(selectedDate);
+              else if (activeScheduleType === 'meeting') setMeetingDate(selectedDate);
+              else setVisitDate(selectedDate);
+              setShowTimePicker(true);
+            }
+          }}
+        />
+      )}
+      {showTimePicker && (
+        <DateTimePicker
+          value={activeScheduleType === 'followup' ? followupDate : activeScheduleType === 'meeting' ? meetingDate : visitDate}
+          mode="time"
+          display="default"
+          onChange={(event, selectedTime) => {
+            setShowTimePicker(false);
+            if (selectedTime) {
+              if (activeScheduleType === 'followup') setFollowupDate(selectedTime);
+              else if (activeScheduleType === 'meeting') setMeetingDate(selectedTime);
+              else setVisitDate(selectedTime);
+            }
+          }}
+        />
+      )}
     </View>
   );
 };
@@ -601,18 +956,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 16,
+    padding: 12,
   },
   headerContent: {
     alignItems: 'center',
-    gap: 16,
+    gap: 12,
   },
   nameSection: {
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   scheduledCard: {
-    marginTop: 16,
+    marginTop: 12,
     borderWidth: 0,
   },
   scheduledContent: {
@@ -780,5 +1135,51 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#FF9800',
     marginTop: 6,
+  },
+  quickActionsSection: {
+    marginVertical: 16,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  scheduleButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  dateInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  input: {
+    padding: 12,
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 16,
+    fontSize: 15,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderWidth: 1,
+    borderRadius: 8,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+  },
+  propertyOption: {
+    padding: 12,
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 8,
   },
 });

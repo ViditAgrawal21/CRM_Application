@@ -11,7 +11,7 @@ import {
 import {useMutation} from '@tanstack/react-query';
 import Icon from '@react-native-vector-icons/ionicons';
 import {useRoute, useNavigation} from '@react-navigation/native';
-import DocumentPicker from 'react-native-document-picker';
+import DocumentPicker from '@react-native-documents/picker';
 import * as XLSX from 'xlsx';
 import {useTheme} from '../hooks/useTheme';
 import {Card, Button, LoadingSpinner} from '../components';

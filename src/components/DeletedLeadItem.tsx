@@ -96,13 +96,13 @@ export const DeletedLeadItem: React.FC<DeletedLeadItemProps> = ({
         <View style={styles.detailRow}>
           <Text style={[styles.label, {color: theme.colors.textSecondary}]}>Deleted By:</Text>
           <Text style={[styles.value, {color: theme.colors.text}]}>
-            {lead.deleted_by_user?.name || 'Unknown'}
+            {lead.deletedByUser?.name || 'Unknown'}
           </Text>
         </View>
         <View style={styles.detailRow}>
           <Text style={[styles.label, {color: theme.colors.textSecondary}]}>Deleted At:</Text>
           <Text style={[styles.value, {color: theme.colors.text}]}>
-            {formatDate(lead.deleted_at)}
+            {formatDate(lead.deletedAt)}
           </Text>
         </View>
       </View>

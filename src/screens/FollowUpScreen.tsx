@@ -75,7 +75,7 @@ export const FollowUpScreen: React.FC = () => {
             NEXT DATE
           </Text>
           <Text style={[theme.typography.body2, {color: theme.colors.error}]}>
-            {formatTime(item.reminder_at)}
+            {formatTime(item.reminderAt)}
           </Text>
         </View>
       </View>
@@ -104,7 +104,7 @@ export const FollowUpScreen: React.FC = () => {
             styles.actionButtonLarge,
             {backgroundColor: theme.colors.viewMore, borderRadius: theme.borderRadius.md},
           ]}
-          onPress={() => navigation.navigate('LeadDetails', {leadId: item.lead_id})}>
+          onPress={() => navigation.navigate('LeadDetails', {leadId: item.leadId})}>
           <Text style={[theme.typography.caption, {color: '#FFFFFF', fontWeight: '600'}]}>
             VIEW MORE
           </Text>

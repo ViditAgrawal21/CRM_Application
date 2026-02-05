@@ -17,7 +17,7 @@ import {Card, Badge, Avatar, LoadingSpinner, EmptyState} from '../components';
 import {leadService} from '../services/leadService';
 import {Lead, LeadType} from '../types';
 import {openPhoneDialer} from '../utils/helpers';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useRoute} from '@react-navigation/native';
 
 type FilterType = 'all' | 'new' | 'inprogress' | 'closed';
 type TypeFilter = 'all' | 'lead' | 'data';
@@ -26,10 +26,18 @@ export const LeadsScreen: React.FC = () => {
   const {theme} = useTheme();
   const {user} = useAuth();
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<FilterType>('all');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Set initial type filter from route params
+  useEffect(() => {
+    if (route.params?.type) {
+      setTypeFilter(route.params.type);
+    }
+  }, [route.params?.type]);
 
   const {data: leads, isLoading, refetch} = useQuery({
     queryKey: ['leads', typeFilter],
@@ -49,17 +57,15 @@ export const LeadsScreen: React.FC = () => {
 
   // Add trash button in header for admin/owner
   useEffect(() => {
-    if (user && ['admin'].includes(user.role)) {
-      navigation.setOptions({
-        headerRight: () => (
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Trash')}
-            style={{marginRight: 15}}>
-            <Icon name="trash-outline" size={24} color={theme.colors.text} />
-          </TouchableOpacity>
-        ),
-      });
-    }
+    navigation.setOptions({
+      headerRight: user && ['admin'].includes(user.role) ? () => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Trash')}
+          style={{marginRight: 15}}>
+          <Icon name="trash-outline" size={24} color={theme.colors.text} />
+        </TouchableOpacity>
+      ) : undefined,
+    });
   }, [user, navigation, theme]);
 
   const handleSoftDelete = (leadId: string, leadName: string) => {
@@ -93,6 +99,9 @@ export const LeadsScreen: React.FC = () => {
     if (filter === 'inprogress') return matchesSearch && ['contacted', 'interested'].includes(lead.status);
     if (filter === 'closed') return matchesSearch && ['converted', 'spam'].includes(lead.status);
     return matchesSearch;
+  }).sort((a, b) => {
+    // Sort by createdAt descending (newest first)
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
   const renderLeadCard = ({item}: {item: Lead}) => {
@@ -100,20 +109,24 @@ export const LeadsScreen: React.FC = () => {
     return (
       <Card style={styles.leadCard}>
         {/* Type Badge */}
-        <View style={[styles.typeBadge, {backgroundColor: typeBadge.color}]}>
-          <Text style={styles.typeBadgeText}>{typeBadge.label}</Text>
+        <View style={styles.badgeContainer}>
+          <View style={[styles.typeBadge, {backgroundColor: typeBadge.color}]}>
+            <Text style={styles.typeBadgeText}>{typeBadge.label}</Text>
+          </View>
         </View>
 
         <View style={styles.leadHeader}>
           <View style={styles.leadInfo}>
             <Avatar name={item.name} size={48} />
             <View style={styles.leadDetails}>
-              <Text style={[theme.typography.body1, {color: theme.colors.text}]}>
+              <Text style={[theme.typography.body1, {color: theme.colors.text, fontWeight: '600'}]}>
                 {item.name}
               </Text>
-              <Text style={[theme.typography.caption, {color: theme.colors.textSecondary}]}>
-                {item.phone}
-              </Text>
+              <TouchableOpacity onPress={() => openPhoneDialer(item.phone)}>
+                <Text style={[theme.typography.body2, {color: '#FF9800', fontWeight: '600'}]}>
+                  {item.phone}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
           <Badge
@@ -206,12 +219,8 @@ export const LeadsScreen: React.FC = () => {
     );
   };
 
-  if (isLoading) {
-    return <LoadingSpinner />;
-  }
-
-  return (
-    <View style={[styles.container, {backgroundColor: theme.colors.background}]}>
+  const renderListHeader = () => (
+    <>
       {/* Search Bar */}
       <View style={[styles.searchContainer, {backgroundColor: theme.colors.surface}]}>
         <Icon name="search" size={20} color={theme.colors.textSecondary} />
@@ -336,11 +345,20 @@ export const LeadsScreen: React.FC = () => {
           </Text>
         </TouchableOpacity>
       </View>
+    </>
+  );
 
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+
+  return (
+    <View style={[styles.container, {backgroundColor: theme.colors.background}]}>
       <FlatList
         data={filteredLeads}
         renderItem={renderLeadCard}
         keyExtractor={item => item.id}
+        ListHeaderComponent={renderListHeader}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={<EmptyState message="No leads found" />}
         refreshControl={
@@ -371,53 +389,66 @@ const styles = StyleSheet.create({
   },
   typeFilterContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    gap: 8,
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+    gap: 6,
   },
   typeFilterTab: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: '#e0e0e0',
   },
   filterContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    gap: 8,
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    gap: 6,
   },
   filterTab: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
   listContent: {
-    padding: 16,
-    gap: 12,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 80,
   },
   leadCard: {
-    marginBottom: 12,
+    marginBottom: 10,
     position: 'relative',
+    paddingTop: 8,
+  },
+  badgeContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 10,
+    flexDirection: 'row',
+    gap: 4,
   },
   typeBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 4,
-    zIndex: 1,
+    borderRadius: 6,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
   },
   typeBadgeText: {
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
   leadHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 16,
+    marginBottom: 12,
+    paddingRight: 85,
   },
   leadInfo: {
     flexDirection: 'row',
@@ -426,7 +457,7 @@ const styles = StyleSheet.create({
   },
   leadDetails: {
     flex: 1,
-    gap: 4,
+    gap: 6,
   },
   metaRow: {
     flexDirection: 'row',
@@ -439,15 +470,15 @@ const styles = StyleSheet.create({
   },
   actionRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 16,
+    gap: 6,
+    marginTop: 12,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     justifyContent: 'center',
   },
   actionButtonLarge: {

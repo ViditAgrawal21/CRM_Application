@@ -38,14 +38,14 @@ export const MeetingDetailScreen: React.FC = () => {
     queryFn: () => leadService.getLeads(),
   });
 
-  const lead = meeting?.lead || leads?.find(l => l.id === meeting?.lead_id);
+  const lead = meeting?.lead || leads?.find(l => l.id === meeting?.leadId);
 
   const completeMutation = useMutation({
     mutationFn: async ({rescheduleRemark}: {rescheduleRemark?: string}) => {
       await meetingService.completeMeeting(meetingId);
       // If reschedule remark provided, update lead remark for auto-sync
-      if (rescheduleRemark && meeting?.lead_id) {
-        await leadService.updateLeadRemark(meeting.lead_id, `Meeting ${rescheduleRemark}`);
+      if (rescheduleRemark && meeting?.leadId) {
+        await leadService.updateLeadRemark(meeting.leadId, `Meeting ${rescheduleRemark}`);
       }
     },
     onSuccess: () => {
@@ -62,9 +62,9 @@ export const MeetingDetailScreen: React.FC = () => {
 
   const rescheduleMutation = useMutation({
     mutationFn: async (rescheduleRemark: string) => {
-      if (!meeting?.lead_id) throw new Error('No lead ID');
+      if (!meeting?.leadId) throw new Error('No lead ID');
       // Update lead remark to trigger backend auto-sync
-      await leadService.updateLeadRemark(meeting.lead_id, `Meeting ${rescheduleRemark}`);
+      await leadService.updateLeadRemark(meeting.leadId, `Meeting ${rescheduleRemark}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['meetings']});
@@ -104,7 +104,7 @@ export const MeetingDetailScreen: React.FC = () => {
     return <LoadingSpinner />;
   }
 
-  const isPast = new Date(meeting.scheduled_at) < new Date();
+  const isPast = new Date(meeting.scheduledAt) < new Date();
   const isCompleted = meeting.status === 'completed';
   const extractedTime = extractTimeFromRemark(meeting.remark || '');
 
@@ -175,7 +175,7 @@ export const MeetingDetailScreen: React.FC = () => {
                 Date & Time
               </Text>
               <Text style={[theme.typography.body1, {color: theme.colors.text}]}>
-                {formatDate(meeting.scheduled_at)} at {formatTime(meeting.scheduled_at)}
+                {formatDate(meeting.scheduledAt)} at {formatTime(meeting.scheduledAt)}
               </Text>
             </View>
           </View>

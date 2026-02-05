@@ -28,9 +28,12 @@ export {MonthlyReportScreen} from './MonthlyReportScreen';
 
 // Bulk Upload
 export {BulkUploadScreen} from './BulkUploadScreen';
+export {BulkUploadMenuScreen} from './BulkUploadMenuScreen';
 
 // Properties & Targets
 export {PropertiesScreen} from './PropertiesScreen';
+export {PropertyDetailsScreen} from './PropertyDetailsScreen';
+export {SharePropertyScreen} from './SharePropertyScreen';
 export {TargetsScreen} from './TargetsScreen';
 
 // Settings

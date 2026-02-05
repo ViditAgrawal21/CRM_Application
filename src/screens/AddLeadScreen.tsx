@@ -198,22 +198,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 16,
+    padding: 12,
   },
   form: {
-    gap: 16,
+    gap: 12,
   },
   inputContainer: {
-    gap: 8,
+    gap: 6,
   },
   input: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderWidth: 1,
-    fontSize: 16,
+    fontSize: 15,
   },
   textArea: {
-    height: 100,
+    height: 90,
     textAlignVertical: 'top',
   },
 });

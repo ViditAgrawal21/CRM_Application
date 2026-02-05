@@ -5,15 +5,20 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Alert,
+  Linking,
+  Share,
 } from 'react-native';
 import {useQuery} from '@tanstack/react-query';
 import Icon from '@react-native-vector-icons/ionicons';
 import {useTheme} from '../hooks/useTheme';
+import {useAuth} from '../hooks/useAuth';
 import {Card, LoadingSpinner} from '../components';
 import {reportService} from '../services/reportService';
 
 export const MonthlyReportScreen: React.FC = () => {
   const {theme} = useTheme();
+  const {user} = useAuth();
 
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
@@ -45,6 +50,89 @@ export const MonthlyReportScreen: React.FC = () => {
     const [year, month] = monthStr.split('-');
     const date = new Date(parseInt(year), parseInt(month) - 1);
     return date.toLocaleDateString('en-IN', {month: 'long', year: 'numeric'});
+  };
+
+  const handleShare = async () => {
+    if (!report) {
+      Alert.alert('Error', 'No report data available');
+      return;
+    }
+
+    const message = `
+📊 Monthly Report - ${formatMonthDisplay(selectedMonth)}
+
+👤 ${report.userName || user?.name || 'Employee'}
+${report.userRole ? `Role: ${report.userRole.toUpperCase()}` : ''}
+
+📅 Meetings:
+• Achieved: ${report.achieved?.meetings || report.totalMeetings || 0}
+• Target: ${report.targets?.meetings || 25}
+• Progress: ${report.performance?.meetingPercentage || 0}%
+
+🏠 Site Visits:
+• Achieved: ${report.achieved?.visits || report.totalVisits || 0}
+• Target: ${report.targets?.visits || 15}
+• Progress: ${report.performance?.visitPercentage || 0}%
+
+${report.targets?.revenue ? `💰 Revenue:
+• Achieved: ₹${(report.achieved?.revenue || 0).toLocaleString('en-IN')}
+• Target: ₹${report.targets.revenue.toLocaleString('en-IN')}
+• Progress: ${report.performance?.revenuePercentage || 0}%
+
+` : ''}${report.bonusEligible ? `🎉 BONUS ELIGIBLE!
+• Bonus Amount: ₹${(report.targets?.bonus || 0).toLocaleString('en-IN')}
+${report.bonusApproved ? '• Status: ✅ APPROVED' : '• Status: ⏳ Pending Approval'}
+` : ''}
+📈 Overall Performance: ${report.performance?.meetingPercentage || 0}% (Meetings) | ${report.performance?.visitPercentage || 0}% (Visits)
+    `.trim();
+
+    try {
+      await Share.share({
+        message,
+      });
+    } catch (error) {
+      console.error('Share error:', error);
+    }
+  };
+
+  const handleWhatsAppShare = () => {
+    if (!report) {
+      Alert.alert('Error', 'No report data available');
+      return;
+    }
+
+    const message = `
+📊 Monthly Report - ${formatMonthDisplay(selectedMonth)}
+
+👤 ${report.userName || user?.name || 'Employee'}
+${report.userRole ? `Role: ${report.userRole.toUpperCase()}` : ''}
+
+📅 Meetings:
+• Achieved: ${report.achieved?.meetings || report.totalMeetings || 0}
+• Target: ${report.targets?.meetings || 25}
+• Progress: ${report.performance?.meetingPercentage || 0}%
+
+🏠 Site Visits:
+• Achieved: ${report.achieved?.visits || report.totalVisits || 0}
+• Target: ${report.targets?.visits || 15}
+• Progress: ${report.performance?.visitPercentage || 0}%
+
+${report.targets?.revenue ? `💰 Revenue:
+• Achieved: ₹${(report.achieved?.revenue || 0).toLocaleString('en-IN')}
+• Target: ₹${report.targets.revenue.toLocaleString('en-IN')}
+• Progress: ${report.performance?.revenuePercentage || 0}%
+
+` : ''}${report.bonusEligible ? `🎉 BONUS ELIGIBLE!
+• Bonus Amount: ₹${(report.targets?.bonus || 0).toLocaleString('en-IN')}
+${report.bonusApproved ? '• Status: ✅ APPROVED' : '• Status: ⏳ Pending Approval'}
+` : ''}
+📈 Overall Performance: ${report.performance?.meetingPercentage || 0}% (Meetings) | ${report.performance?.visitPercentage || 0}% (Visits)
+    `.trim();
+
+    const url = `whatsapp://send?text=${encodeURIComponent(message)}`;
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Error', 'WhatsApp is not installed');
+    });
   };
 
   const ProgressBar: React.FC<{
@@ -293,6 +381,29 @@ export const MonthlyReportScreen: React.FC = () => {
             </Text>
           </View>
         </Card>
+
+        {/* Share Buttons */}
+        {report && (
+          <View style={styles.shareButtons}>
+            <TouchableOpacity
+              style={[styles.shareButton, {backgroundColor: theme.colors.primary}]}
+              onPress={handleShare}>
+              <Icon name="share-outline" size={20} color="#FFFFFF" />
+              <Text style={[theme.typography.body1, {color: '#FFFFFF', marginLeft: 8}]}>
+                Share Report
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.shareButton, {backgroundColor: '#25D366'}]}
+              onPress={handleWhatsAppShare}>
+              <Icon name="logo-whatsapp" size={20} color="#FFFFFF" />
+              <Text style={[theme.typography.body1, {color: '#FFFFFF', marginLeft: 8}]}>
+                WhatsApp
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -371,5 +482,18 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     marginTop: 12,
     borderTopWidth: 1,
+  },
+  shareButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  shareButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 8,
   },
 });

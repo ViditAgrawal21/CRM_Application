@@ -38,14 +38,14 @@ export const VisitDetailScreen: React.FC = () => {
     queryFn: () => leadService.getLeads(),
   });
 
-  const lead = visit?.lead || leads?.find(l => l.id === visit?.lead_id);
+  const lead = visit?.lead || leads?.find(l => l.id === visit?.leadId);
 
   const completeMutation = useMutation({
     mutationFn: async ({rescheduleRemark}: {rescheduleRemark?: string}) => {
       await visitService.completeVisit(visitId);
       // If reschedule remark provided, update lead remark for auto-sync
-      if (rescheduleRemark && visit?.lead_id) {
-        await leadService.updateLeadRemark(visit.lead_id, `Visit ${rescheduleRemark}`);
+      if (rescheduleRemark && visit?.leadId) {
+        await leadService.updateLeadRemark(visit.leadId, `Visit ${rescheduleRemark}`);
       }
     },
     onSuccess: () => {
@@ -62,9 +62,9 @@ export const VisitDetailScreen: React.FC = () => {
 
   const rescheduleMutation = useMutation({
     mutationFn: async (rescheduleRemark: string) => {
-      if (!visit?.lead_id) throw new Error('No lead ID');
+      if (!visit?.leadId) throw new Error('No lead ID');
       // Update lead remark to trigger backend auto-sync
-      await leadService.updateLeadRemark(visit.lead_id, `Visit ${rescheduleRemark}`);
+      await leadService.updateLeadRemark(visit.leadId, `Visit ${rescheduleRemark}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['visits']});
@@ -104,7 +104,7 @@ export const VisitDetailScreen: React.FC = () => {
     return <LoadingSpinner />;
   }
 
-  const isPast = new Date(visit.scheduled_at) < new Date();
+  const isPast = new Date(visit.scheduledAt) < new Date();
   const isCompleted = visit.status === 'completed';
   const extractedTime = extractTimeFromRemark(visit.remark || '');
 
@@ -163,7 +163,7 @@ export const VisitDetailScreen: React.FC = () => {
                 PROPERTY VISIT
               </Text>
               <Text style={[theme.typography.h4, {color: theme.colors.text}]}>
-                {visit.site_location}
+                {visit.siteLocation}
               </Text>
             </View>
           </View>
@@ -192,7 +192,7 @@ export const VisitDetailScreen: React.FC = () => {
                 Date & Time
               </Text>
               <Text style={[theme.typography.body1, {color: theme.colors.text}]}>
-                {formatDate(visit.scheduled_at)} at {formatTime(visit.scheduled_at)}
+                {formatDate(visit.scheduledAt)} at {formatTime(visit.scheduledAt)}
               </Text>
             </View>
           </View>
@@ -204,7 +204,7 @@ export const VisitDetailScreen: React.FC = () => {
                 Site Location
               </Text>
               <Text style={[theme.typography.body1, {color: theme.colors.text}]}>
-                {visit.site_location}
+                {visit.siteLocation}
               </Text>
             </View>
           </View>
